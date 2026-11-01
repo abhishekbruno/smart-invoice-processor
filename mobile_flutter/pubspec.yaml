@@ -1,0 +1,29 @@
+name: smart_invoice_mobile
+description: "Cross-platform mobile application for Smart Invoice Processor (RPA + RAG + AI)"
+publish_to: "none"
+version: 2.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.0.1
+  dio: ^5.4.1
+  file_picker: ^8.0.0
+  fl_chart: ^0.68.0
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/hero_orb.png
+

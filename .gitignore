@@ -1,0 +1,99 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+config/credentials.json
+config/token.json
+*token*.json
+*credentials*.json
+
+# Python bytecode & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# Local databases & SQLite locks
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Vector storage
+storage/chroma/
+
+# Application logs
+logs/
+*.log
+
+# Private and generated documents
+data/invoices/*
+data/processed/*
+!data/invoices/.gitkeep
+!data/processed/.gitkeep
+!data/samples/*.pdf
+!data/samples/.gitkeep
+
+# Streamlit local state
+.streamlit/
+
+# IDE, OS and temporary files
+.vscode/
+.idea/
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+scratch/
+# React / Vite
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+
+# Android
+.gradle/
+android/local.properties
+*.jks
+*.keystore
+key.properties
+
+# Additional secrets
+*client_secret*.json
+*service-account*.json
+*.pem
+*.p12
+*.pfx
+
+# Temporary files
+*.swp
+*.swo
+# Flutter local configuration
+mobile_flutter/android/local.properties
+
+# React and Flutter generated files
+node_modules/
+dist/
+.dart_tool/
+build/
+.gradle/

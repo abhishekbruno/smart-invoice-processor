@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.smartinvoice.smart_invoice_mobile">
+    <!-- Flutter needs it for hot reload and connecting to the VM service -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:usesCleartextTraffic="true" />
+</manifest>
+
