@@ -22,7 +22,7 @@ An intelligent, cross-platform full-stack invoice processing application designe
 
 ---
 
-## 📌 Table of Contents
+Table of Contents
 
 - [System Architecture](#-system-architecture)
 - [Client Platforms Overview](#-client-platforms-overview)
@@ -41,7 +41,7 @@ An intelligent, cross-platform full-stack invoice processing application designe
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
@@ -86,7 +86,7 @@ flowchart TD
 
 ---
 
-## 📱 Client Platforms Overview
+## Client Platforms Overview
 
 | Platform | Directory | Framework / Stack | Key Features |
 |---|---|---|---|
@@ -97,7 +97,7 @@ flowchart TD
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Backend & API:** Python 3.11+, FastAPI, Uvicorn, Pydantic v2, Python-Multipart.
 - **AI & RAG:** Google Gemini API (`google-genai` SDK), Gemini 2.5 Flash, ChromaDB, Sentence Transformers (`all-MiniLM-L6-v2`, 384d).
@@ -111,7 +111,7 @@ flowchart TD
 
 ---
 
-## 🚀 Installation & Quickstart
+##  Installation & Quickstart
 
 ### 1. Backend & Python Setup
 
@@ -213,7 +213,7 @@ For detailed physical device setup, Wi-Fi LAN testing instructions, and a 12-poi
 
 ---
 
-## ⚖️ Deterministic Financial Safety (SQL vs. RAG)
+##  Deterministic Financial Safety (SQL vs. RAG)
 
 | Query Type | Routing Path | Engine | Accuracy Guarantee |
 |---|---|---|---|
@@ -225,7 +225,7 @@ For detailed physical device setup, Wi-Fi LAN testing instructions, and a 12-poi
 
 ---
 
-## 💱 Multi-Currency Conversion & Valuation
+##  Multi-Currency Conversion & Valuation
 
 - **Supported Currencies:** USD ($), EUR (€), GBP (£), and INR (₹).
 - **Valuation Modes:**
@@ -235,7 +235,7 @@ For detailed physical device setup, Wi-Fi LAN testing instructions, and a 12-poi
 
 ---
 
-## 🧪 Automated Testing (108 Tests)
+##  Automated Testing (108 Tests)
 
 The repository features an automated test suite with **108 passing tests** covering the entire full-stack pipeline:
 
@@ -265,7 +265,7 @@ pytest -v
 
 ---
 
-## 🔒 Security & Privacy
+##  Security & Privacy
 
 - **Zero Secret Exposure:** `.env`, OAuth tokens, credentials, and logs are excluded via `.gitignore`.
 - **Read-Only Scope:** Gmail integration requests strictly read-only access (`gmail.readonly`).
@@ -274,6 +274,6 @@ pytest -v
 
 ---
 
-## 📄 License
+##  License
 
 This project is open-source and licensed under the terms of the [MIT License](LICENSE).
