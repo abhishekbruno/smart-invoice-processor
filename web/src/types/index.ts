@@ -148,6 +148,18 @@ export interface AppSettings {
   };
 }
 
+export interface ProcessingActivityItem {
+  id: number;
+  file_name: string;
+  file_path: string;
+  file_hash: string;
+  file_size: number;
+  status: 'success' | 'duplicate' | 'failed' | string;
+  error_message?: string | null;
+  duration_sec?: number | null;
+  processed_at: string;
+}
+
 export interface SystemStatus {
   status: string;
   environment: string;

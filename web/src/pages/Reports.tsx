@@ -6,8 +6,10 @@ import {
 import { downloadReportFile } from '../services/api';
 import { CosmicGlassPanel } from '../components/CosmicGlassPanel';
 import { CosmicLoader } from '../components/CosmicLoader';
+import { useNotifications } from '../components/NotificationProvider';
 
 export const Reports: React.FC = () => {
+  const notify = useNotifications();
   const [reportType, setReportType] = useState<'invoices' | 'monthly' | 'vendors'>('invoices');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx' | 'pdf'>('csv');
   const [targetCurrency, setTargetCurrency] = useState('INR');
@@ -37,10 +39,11 @@ export const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
 
       setDownloadSuccess(true);
+      notify.success(`${filename} exported successfully.`, 'Report Generated');
       setTimeout(() => setDownloadSuccess(false), 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Download failed', err);
-      alert('Report export failed. Please verify API server status.');
+      notify.error(err?.message || 'Report export failed. Please verify API server status.', 'Export Failed');
     } finally {
       setIsDownloading(false);
     }
@@ -62,7 +65,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Main Generation Card in Cosmic Violet Glass */}
-      <CosmicGlassPanel className="p-7 sm:p-8 space-y-6">
+      <CosmicGlassPanel interactive className="p-7 sm:p-8 space-y-6">
         {/* Step 1: Report Type Cards */}
         <div>
           <label className="text-xs font-semibold uppercase font-mono tracking-wider text-[#9892AB] block mb-3.5">

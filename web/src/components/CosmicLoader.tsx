@@ -7,8 +7,13 @@ interface CosmicLoaderProps {
 }
 
 /**
- * Lightweight, reusable cosmic energy loading indicator inspired by the celestial sun.
- * Used for in-page asynchronous operations (Gemini responses, Gmail sync, exports, queries).
+ * CosmicLoader — Reusable Cosmic Energy Loading Indicator
+ *
+ * Designed for genuine asynchronous loading states (FastAPI queries, exports, syncs):
+ * - Small rotating orbital ring.
+ * - Soft glowing violet center.
+ * - Delicate orbiting micro-particles.
+ * - Minimal context-specific status text.
  */
 export const CosmicLoader: React.FC<CosmicLoaderProps> = ({
   size = 'md',
@@ -82,6 +87,10 @@ export const CosmicLoader: React.FC<CosmicLoaderProps> = ({
             strokeLinecap="round"
             strokeDasharray="72 28"
           />
+          {/* Orbiting micro-particle 1 */}
+          <circle cx="20" cy="4" r="1.5" fill="#FFFFFF" opacity={0.9} />
+          {/* Orbiting micro-particle 2 */}
+          <circle cx="36" cy="20" r="1.2" fill="#E9D5FF" opacity={0.75} />
           <defs>
             <linearGradient id="cosmic-loader-grad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#FFFFFF" />
@@ -92,10 +101,13 @@ export const CosmicLoader: React.FC<CosmicLoaderProps> = ({
           </defs>
         </svg>
 
-        {/* Central radiant stellar core dot */}
+        {/* Central radiant violet energy core dot */}
         <div
-          className="w-1.5 h-1.5 rounded-full bg-[#F5F3FF] shadow-[0_0_6px_#C084FC]"
-          style={{ width: Math.max(3, pixelSize * 0.12), height: Math.max(3, pixelSize * 0.12) }}
+          className="rounded-full bg-gradient-to-tr from-[#7C3AED] via-[#C084FC] to-[#F5EDFF] shadow-[0_0_8px_#C084FC]"
+          style={{
+            width: Math.max(4, pixelSize * 0.16),
+            height: Math.max(4, pixelSize * 0.16),
+          }}
         />
       </div>
 
@@ -108,3 +120,38 @@ export const CosmicLoader: React.FC<CosmicLoaderProps> = ({
   );
 };
 
+/**
+ * Reusable frosted skeleton placeholder for table rows
+ */
+export const CosmicTableSkeleton: React.FC<{ rows?: number; cols?: number }> = ({
+  rows = 4,
+  cols = 5,
+}) => (
+  <tbody className="divide-y divide-white/5 animate-pulse">
+    {Array.from({ length: rows }).map((_, r) => (
+      <tr key={r}>
+        {Array.from({ length: cols }).map((_, c) => (
+          <td key={c} className="px-6 py-4">
+            <div
+              className="h-3.5 rounded bg-white/[0.04] border border-white/[0.03]"
+              style={{ width: `${45 + ((r * 17 + c * 29) % 45)}%` }}
+            />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </tbody>
+);
+
+/**
+ * Reusable frosted skeleton placeholder for cards
+ */
+export const CosmicCardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div
+    className={`p-6 rounded-2xl bg-white/[0.02] border border-white/5 animate-pulse flex flex-col justify-between ${className}`}
+  >
+    <div className="h-4 w-28 bg-white/[0.05] rounded mb-4" />
+    <div className="h-8 w-36 bg-white/[0.07] rounded mb-2" />
+    <div className="h-3 w-48 bg-white/[0.04] rounded" />
+  </div>
+);

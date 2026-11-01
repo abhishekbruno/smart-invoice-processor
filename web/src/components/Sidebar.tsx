@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSystemStatus, fetchSettings } from '../services/api';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -20,6 +20,9 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [pillState, setPillState] = useState<{ top: number; height: number; opacity: number } | null>(null);
 
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: ['system-status'],
@@ -54,6 +57,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
   );
 
+  useLayoutEffect(() => {
+    if (activeIndex >= 0) {
+      const activeEl = itemRefs.current[activeIndex];
+      if (activeEl) {
+        setPillState({
+          top: activeEl.offsetTop,
+          height: activeEl.offsetHeight,
+          opacity: 1,
+        });
+      }
+    } else {
+      setPillState((prev) => (prev ? { ...prev, opacity: 0 } : null));
+    }
+  }, [activeIndex, location.pathname]);
+
+  // Handle resize smoothly
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !('ResizeObserver' in window)) return;
+    const ro = new ResizeObserver(() => {
+      if (activeIndex >= 0 && itemRefs.current[activeIndex]) {
+        const activeEl = itemRefs.current[activeIndex]!;
+        setPillState({
+          top: activeEl.offsetTop,
+          height: activeEl.offsetHeight,
+          opacity: 1,
+        });
+      }
+    });
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [activeIndex]);
+
   const isHealthy = status?.status === 'healthy';
 
   return (
@@ -86,29 +122,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Navigation list with Shared Gliding Active Indicator */}
-        <nav className="relative flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {/* Navigation list with Single Shared Gliding Active Indicator */}
+        <nav ref={navRef} className="relative flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {/* Gliding Active Indicator Pill */}
-          {activeIndex >= 0 && (
+          {pillState && (
             <div
               aria-hidden="true"
-              className="absolute left-3 right-3 h-[38px] rounded-xl pointer-events-none transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] z-0"
+              className="absolute left-3 right-3 rounded-xl pointer-events-none z-0 transition-[transform,height,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{
-                top: '16px', // matches py-4 padding-top
-                transform: `translateY(${activeIndex * 42}px)`,
+                top: 0,
+                transform: `translate3d(0, ${pillState.top}px, 0)`,
+                height: `${pillState.height}px`,
+                opacity: pillState.opacity,
                 background:
-                  'linear-gradient(90deg, rgba(75, 55, 178, 0.38), rgba(36, 23, 77, 0.25))',
-                border: '1px solid rgba(187, 168, 241, 0.42)',
+                  'linear-gradient(90deg, rgba(75, 55, 178, 0.40), rgba(36, 23, 77, 0.28))',
+                border: '1px solid rgba(187, 168, 241, 0.45)',
                 boxShadow:
-                  '0 0 20px -3px rgba(115, 85, 224, 0.4), inset 0 1px 0 rgba(216, 201, 255, 0.15)',
+                  '0 0 22px -3px rgba(115, 85, 224, 0.42), inset 0 1px 0 rgba(216, 201, 255, 0.18)',
               }}
             >
               {/* Left glowing neon accent notch */}
-              <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#BBA8F1] shadow-[0_0_10px_#BBA8F1]" />
+              <div className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-[#BBA8F1] shadow-[0_0_10px_#BBA8F1,0_0_4px_#FFF]" />
             </div>
           )}
 
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive =
               item.to === '/'
@@ -118,12 +156,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             return (
               <NavLink
                 key={item.to}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 to={item.to}
                 onClick={onClose}
-                className={`relative z-10 flex items-center justify-between px-3 h-[38px] rounded-xl text-xs font-sans font-medium transition-colors duration-200 ${
+                className={`relative z-10 flex items-center justify-between px-3 h-[42px] rounded-xl text-xs font-sans font-medium transition-colors duration-200 select-none ${
                   isActive
                     ? 'text-[#F1EDF8] font-semibold'
-                    : 'text-[#B8B2C8] hover:text-[#F1EDF8] hover:bg-white/[0.035]'
+                    : 'text-[#B8B2C8] hover:text-[#F1EDF8] hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">

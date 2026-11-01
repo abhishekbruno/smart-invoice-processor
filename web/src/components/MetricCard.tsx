@@ -23,7 +23,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   format,
 }) => {
   return (
-    <CosmicGlassPanel className="metric-card p-5.5 h-full flex flex-col justify-between group">
+    <CosmicGlassPanel interactive className="metric-card p-5.5 h-full flex flex-col justify-between group">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-sans font-medium tracking-wider uppercase text-[#B8B2C8]">
           {title}

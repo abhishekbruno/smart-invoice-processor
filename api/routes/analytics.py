@@ -154,3 +154,10 @@ def get_full_expense_analytics(
         currency_distribution=currencies,
     )
 
+
+@router.get("/activity", response_model=List[dict])
+def get_recent_activity(limit: int = Query(15, ge=1, le=50)):
+    """Returns actual recent invoice processing audit logs from the SQLite database."""
+    return db.get_processing_logs(limit=limit)
+
+

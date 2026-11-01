@@ -18,6 +18,7 @@ import { MetricCard } from '../components/MetricCard';
 import { CosmicGlassPanel } from '../components/CosmicGlassPanel';
 import { useEffects } from '../components/EffectsProvider';
 import { ScrollReveal } from '../components/ScrollReveal';
+import { CosmicLoader } from '../components/CosmicLoader';
 
 const AOVIX_COLORS = ['#4B37B2', '#8879A7', '#BAA7D1', '#923F53', '#4B334D', '#72707D'];
 
@@ -157,7 +158,7 @@ export const Analytics: React.FC = () => {
 
       {/* Primary Focused Visualizer Area in Cosmic Violet Glass */}
       {activeTab === 'monthly' && (
-        <CosmicGlassPanel className="p-6 sm:p-7">
+        <CosmicGlassPanel interactive className="p-6 sm:p-7">
           <div className="mb-4">
             <h2 className="text-sm font-display font-semibold text-[#F1EDF8] tracking-tight">Monthly Expenditure Run-Rate</h2>
             <p className="text-xs text-[#9892AB] font-sans">Normalized in {selectedCurrency} based on invoice issue dates</p>
@@ -178,7 +179,7 @@ export const Analytics: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-xs text-[#9892AB]">
-                {isLoading ? 'Loading metrics...' : 'No data available'}
+                {isLoading ? <CosmicLoader size="sm" label="Preparing analytics…" /> : 'No data available'}
               </div>
             )}
           </div>
@@ -186,7 +187,7 @@ export const Analytics: React.FC = () => {
       )}
 
       {activeTab === 'vendors' && (
-        <CosmicGlassPanel className="overflow-hidden p-0">
+        <CosmicGlassPanel interactive className="overflow-hidden p-0">
           <div className="px-6 py-4.5 border-b border-white/6">
             <h2 className="text-sm font-display font-semibold text-[#F1EDF8] tracking-tight">Supplier Expenditure Distribution</h2>
             <p className="text-xs text-[#9892AB] font-sans">Ranked by total converted expenditure in {selectedCurrency}</p>
@@ -217,7 +218,7 @@ export const Analytics: React.FC = () => {
       )}
 
       {activeTab === 'currencies' && (
-        <CosmicGlassPanel className="p-6 sm:p-7">
+        <CosmicGlassPanel interactive className="p-6 sm:p-7">
           <div className="mb-4">
             <h2 className="text-sm font-display font-semibold text-[#F1EDF8] tracking-tight">Original Currency Distribution</h2>
             <p className="text-xs text-[#9892AB] font-sans">Proportion of original invoice billing currencies</p>
@@ -252,7 +253,7 @@ export const Analytics: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-xs text-[#9892AB]">
-                {isLoading ? 'Loading...' : 'No currency data'}
+                {isLoading ? <CosmicLoader size="sm" label="Preparing analytics…" /> : 'No currency data'}
               </div>
             )}
           </div>

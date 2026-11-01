@@ -2,6 +2,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } f
 import type { ReactNode } from 'react';
 import { useLocation, useNavigationType, useOutlet } from 'react-router-dom';
 import { useEffects } from './EffectsProvider';
+import { CosmicLoader } from './CosmicLoader';
 
 export function AnimatedPage() {
   const outlet = useOutlet();
@@ -38,7 +39,24 @@ export function AnimatedPage() {
     return () => animation?.cancel();
   }, [shown.pathname, reduced, changing]);
 
-  return <div ref={container} inert={changing} className="animated-page"><Suspense fallback={<div className="min-h-96 flex items-center justify-center text-sm text-[#b4a3c7]" role="status">Opening workspace…</div>}><CommittedPage pathname={changing ? shown.pathname : location.pathname} restoreScroll={restoreScroll}>{changing ? shown.outlet : outlet}</CommittedPage></Suspense></div>;
+  return (
+    <div ref={container} inert={changing} className="animated-page">
+      <Suspense
+        fallback={
+          <div className="min-h-96 flex items-center justify-center p-8" role="status">
+            <CosmicLoader size="md" label="Loading workspace…" />
+          </div>
+        }
+      >
+        <CommittedPage
+          pathname={changing ? shown.pathname : location.pathname}
+          restoreScroll={restoreScroll}
+        >
+          {changing ? shown.outlet : outlet}
+        </CommittedPage>
+      </Suspense>
+    </div>
+  );
 }
 
 // This effect commits only when the lazy destination has resolved, never on its fallback.

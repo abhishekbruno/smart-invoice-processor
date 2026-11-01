@@ -99,11 +99,11 @@ class DatabaseManager:
                     confidence_scores TEXT, -- JSON
                     extraction_notes TEXT,  -- JSON
                     status TEXT NOT NULL DEFAULT 'processed', -- processed, needs_review, verified, suspected_duplicate
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
                     is_duplicate INTEGER NOT NULL DEFAULT 0,
                     duplicate_of_id INTEGER,
-                    duplicate_reason TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    duplicate_reason TEXT
                 );
                 """
             )

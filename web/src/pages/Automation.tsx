@@ -72,7 +72,7 @@ export const Automation: React.FC = () => {
       {/* Primary 2 Ingestion Control Cards in Cosmic Violet Glass */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* Local Folder Watcher */}
-        <CosmicGlassPanel className="p-6 sm:p-7 flex flex-col justify-between space-y-5 transition-all">
+        <CosmicGlassPanel interactive className="p-6 sm:p-7 flex flex-col justify-between space-y-5 transition-all">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -107,7 +107,7 @@ export const Automation: React.FC = () => {
         </CosmicGlassPanel>
 
         {/* Gmail RPA Poller */}
-        <CosmicGlassPanel className="p-6 sm:p-7 flex flex-col justify-between space-y-5 transition-all">
+        <CosmicGlassPanel interactive className="p-6 sm:p-7 flex flex-col justify-between space-y-5 transition-all">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">

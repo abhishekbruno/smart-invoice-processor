@@ -53,10 +53,14 @@ export async function uploadInvoiceFile(file: File): Promise<{
   status: string;
   invoice_id?: number;
   file_name: string;
+  file_hash?: string;
   vendor?: string;
+  invoice_number?: string;
   total_amount?: number;
   currency?: string;
   is_duplicate?: boolean;
+  duplicate_reason?: string;
+  message?: string;
 }> {
   const formData = new FormData();
   formData.append('file', file);
@@ -126,6 +130,13 @@ export async function fetchVendorSpending(currency?: string, mode: string = 'his
 export async function fetchFullAnalytics(currency?: string, mode: string = 'historical'): Promise<ExpenseAnalytics> {
   const res = await apiClient.get<ExpenseAnalytics>('/analytics/expenses', {
     params: { currency, mode },
+  });
+  return res.data;
+}
+
+export async function fetchRecentActivity(limit: number = 10): Promise<import('../types').ProcessingActivityItem[]> {
+  const res = await apiClient.get<import('../types').ProcessingActivityItem[]>('/analytics/activity', {
+    params: { limit },
   });
   return res.data;
 }

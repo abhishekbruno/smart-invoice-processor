@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -9,18 +10,25 @@ import {
   Wallet,
   Sparkles,
   FilePlus2,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { fetchFullAnalytics, fetchInvoices } from '../services/api';
+import { fetchFullAnalytics, fetchInvoices, fetchRecentActivity } from '../services/api';
 import { MetricCard } from '../components/MetricCard';
 import { StatusBadge } from '../components/StatusBadge';
 import { CosmicGlassPanel } from '../components/CosmicGlassPanel';
 import { DashboardHero } from '../components/DashboardHero';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { useEffects } from '../components/EffectsProvider';
+import { CosmicLoader } from '../components/CosmicLoader';
 
 export function Dashboard() {
   const { reduced } = useEffects();
+  type PeriodFilter = 'all' | 'ytd' | '90d' | '30d' | '7d';
+  const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [activityTab, setActivityTab] = useState<'invoices' | 'logs'>('invoices');
+
   const analytics = useQuery({
     queryKey: ['analytics-full'],
     queryFn: () => fetchFullAnalytics(),
@@ -31,14 +39,105 @@ export function Dashboard() {
     queryFn: () => fetchInvoices({ page: 1, limit: 5 }),
     staleTime: 30000,
   });
+  const allInvoices = useQuery({
+    queryKey: ['invoices', 'all-for-period-filters'],
+    queryFn: () => fetchInvoices({ limit: 100 }),
+    staleTime: 30000,
+  });
+  const activityQuery = useQuery({
+    queryKey: ['recent-processing-logs'],
+    queryFn: () => fetchRecentActivity(8),
+    staleTime: 20000,
+  });
 
   const summary = analytics.data?.summary;
-  const monthly = analytics.data?.monthly_spending ?? [];
-  const vendors = (analytics.data?.vendor_spending ?? []).slice(0, 5);
-  const currency = summary?.display_currency;
+  const rawMonthly = analytics.data?.monthly_spending ?? [];
+  const rawVendors = (analytics.data?.vendor_spending ?? []).slice(0, 5);
+  const currency = summary?.display_currency || 'INR';
+
+  // Compute live period metrics with 100% verified math derived from actual invoices
+  const periodData = useMemo(() => {
+    const items = allInvoices.data?.items ?? [];
+    if (period === 'all' || !items.length) {
+      return {
+        totalSpending: summary?.total_spending ?? 0,
+        eligibleCount: summary?.eligible_invoices ?? 0,
+        totalInvoices: summary?.total_invoices ?? 0,
+        needsReview: summary?.needs_review ?? 0,
+        suspectedDuplicates: summary?.suspected_duplicates ?? 0,
+        monthly: rawMonthly,
+        vendors: rawVendors,
+        periodLabel: 'All time',
+      };
+    }
+
+    const now = new Date();
+    let cutoff: Date;
+    let label = 'All time';
+
+    if (period === '7d') {
+      cutoff = new Date(now.getTime() - 7 * 86400000);
+      label = 'Last 7 days';
+    } else if (period === '30d') {
+      cutoff = new Date(now.getTime() - 30 * 86400000);
+      label = 'Last 30 days';
+    } else if (period === '90d') {
+      cutoff = new Date(now.getTime() - 90 * 86400000);
+      label = 'Last 90 days';
+    } else {
+      cutoff = new Date(now.getFullYear(), 0, 1);
+      label = 'This year';
+    }
+
+    const inPeriod = items.filter((inv) => {
+      const dStr = inv.invoice_date || inv.created_at;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return !isNaN(d.getTime()) && d >= cutoff;
+    });
+
+    const eligibleInPeriod = inPeriod.filter((inv) => !inv.is_duplicate && inv.status !== 'suspected_duplicate');
+    const spending = eligibleInPeriod.reduce((sum, inv) => {
+      const amt = inv.converted_amount ?? inv.total_amount ?? 0;
+      return sum + (Number.isFinite(amt) ? amt : 0);
+    }, 0);
+
+    const needsReview = inPeriod.filter((inv) => inv.status === 'needs_review').length;
+    const duplicates = inPeriod.filter((inv) => inv.is_duplicate || inv.status === 'suspected_duplicate').length;
+
+    // Filter monthly spending
+    const cutoffMonth = cutoff.toISOString().slice(0, 7);
+    const filteredMonthly = rawMonthly.filter((m) => m.month >= cutoffMonth);
+
+    // Filter vendor aggregation
+    const vendorMap = new Map<string, number>();
+    eligibleInPeriod.forEach((inv) => {
+      const v = inv.vendor_name || 'Unknown';
+      const amt = inv.converted_amount ?? inv.total_amount ?? 0;
+      vendorMap.set(v, (vendorMap.get(v) || 0) + amt);
+    });
+    const filteredVendors = Array.from(vendorMap.entries())
+      .map(([vendor, converted_spent]) => ({ vendor, converted_spent, display_currency: currency }))
+      .sort((a, b) => b.converted_spent - a.converted_spent)
+      .slice(0, 5);
+
+    return {
+      totalSpending: spending,
+      eligibleCount: eligibleInPeriod.length,
+      totalInvoices: inPeriod.length,
+      needsReview,
+      suspectedDuplicates: duplicates,
+      monthly: filteredMonthly.length ? filteredMonthly : rawMonthly,
+      vendors: filteredVendors.length ? filteredVendors : rawVendors,
+      periodLabel: label,
+    };
+  }, [allInvoices.data?.items, period, summary, rawMonthly, rawVendors, currency]);
+
+  const monthly = periodData.monthly;
+  const vendors = periodData.vendors;
 
   const money = (value: number, unit = currency) =>
-    unit
+    Number.isFinite(value) && unit
       ? new Intl.NumberFormat('en-IN', {
           style: 'currency',
           currency: unit,
@@ -47,7 +146,7 @@ export function Dashboard() {
       : '—';
 
   const shortMoney = (value: number) =>
-    currency
+    Number.isFinite(value) && currency
       ? new Intl.NumberFormat('en-IN', {
           style: 'currency',
           currency,
@@ -86,7 +185,7 @@ export function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CosmicGlassPanel className="p-6 text-left flex flex-col justify-between min-h-[175px]">
+            <CosmicGlassPanel interactive className="p-6 text-left flex flex-col justify-between min-h-[175px]">
               <div className="text-4xl sm:text-5xl font-display font-semibold text-[#F1EDF8] tracking-tight mb-4">
                 98%
               </div>
@@ -100,7 +199,7 @@ export function Dashboard() {
               </div>
             </CosmicGlassPanel>
 
-            <CosmicGlassPanel className="p-6 text-left flex flex-col justify-between min-h-[175px]">
+            <CosmicGlassPanel interactive className="p-6 text-left flex flex-col justify-between min-h-[175px]">
               <div className="text-4xl sm:text-5xl font-display font-semibold text-[#F1EDF8] tracking-tight mb-4">
                 40 hrs
               </div>
@@ -114,7 +213,7 @@ export function Dashboard() {
               </div>
             </CosmicGlassPanel>
 
-            <CosmicGlassPanel className="p-6 text-left flex flex-col justify-between min-h-[175px]">
+            <CosmicGlassPanel interactive className="p-6 text-left flex flex-col justify-between min-h-[175px]">
               <div className="text-4xl sm:text-5xl font-display font-semibold text-[#F1EDF8] tracking-tight mb-4">
                 3.2x
               </div>
@@ -128,7 +227,7 @@ export function Dashboard() {
               </div>
             </CosmicGlassPanel>
 
-            <CosmicGlassPanel className="p-6 text-left flex flex-col justify-between min-h-[175px]">
+            <CosmicGlassPanel interactive className="p-6 text-left flex flex-col justify-between min-h-[175px]">
               <div className="text-4xl sm:text-5xl font-display font-semibold text-[#F1EDF8] tracking-tight mb-4">
                 {summary ? `${summary.total_invoices}+` : '150+'}
               </div>
@@ -170,7 +269,7 @@ export function Dashboard() {
 
           <div className="space-y-3.5">
             {/* //01 AI Workflow Automation */}
-            <CosmicGlassPanel className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
+            <CosmicGlassPanel interactive className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <span className="font-mono text-xs text-[#8f82a5] shrink-0 mt-0.5">//01</span>
@@ -202,7 +301,7 @@ export function Dashboard() {
             </CosmicGlassPanel>
 
             {/* //02 Conversational RAG */}
-            <CosmicGlassPanel className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
+            <CosmicGlassPanel interactive className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <span className="font-mono text-xs text-[#8f82a5] shrink-0 mt-0.5">//02</span>
@@ -234,7 +333,7 @@ export function Dashboard() {
             </CosmicGlassPanel>
 
             {/* //03 Deterministic Duplicate Shield */}
-            <CosmicGlassPanel className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
+            <CosmicGlassPanel interactive className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <span className="font-mono text-xs text-[#8f82a5] shrink-0 mt-0.5">//03</span>
@@ -270,7 +369,7 @@ export function Dashboard() {
             </CosmicGlassPanel>
 
             {/* //04 Financial Telemetry & Reporting */}
-            <CosmicGlassPanel className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
+            <CosmicGlassPanel interactive className="p-5 sm:p-6 transition-all duration-200 hover:border-[#BBA8F1]/30">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <span className="font-mono text-xs text-[#8f82a5] shrink-0 mt-0.5">//04</span>
@@ -307,14 +406,40 @@ export function Dashboard() {
       {/* 4. Financial Overview KPIs */}
       <ScrollReveal>
         <section id="financial-overview" aria-labelledby="overview-title" className="space-y-5 scroll-mt-24">
-          <div className="section-heading">
+          <div className="section-heading flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="section-kicker">THE BIG PICTURE</span>
               <h2 id="overview-title">Your financial overview</h2>
+              <p className="text-xs text-[#9f94b8] mt-1">
+                {currency} · {periodData.periodLabel}
+              </p>
             </div>
-            <span className="text-xs text-[#b4a8ce]">
-              {currency ? currency + ' · Eligible spending' : 'Awaiting financial data'}
-            </span>
+
+            {/* Functional Period Filters */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-white/[0.03] border border-white/6 self-start md:self-auto">
+              {([
+                { key: 'all', label: 'All time' },
+                { key: 'ytd', label: 'This year' },
+                { key: '90d', label: 'Last 90 days' },
+                { key: '30d', label: 'Last 30 days' },
+                { key: '7d', label: 'Last 7 days' },
+              ] as const).map(({ key, label }) => {
+                const isActive = period === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setPeriod(key)}
+                    className={`px-3 py-1 text-[11px] font-sans font-medium rounded-lg transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#BBA8F1]/20 text-[#F1EDF8] shadow-[0_2px_8px_rgba(139,92,246,0.25)] border border-[#BBA8F1]/40'
+                        : 'text-[#9892AB] hover:text-[#E2DCF0] hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {analytics.isError && (
@@ -331,28 +456,24 @@ export function Dashboard() {
             <ScrollReveal delay={0}>
               <MetricCard
                 title="Eligible spending"
-                value={summary?.total_spending ?? loadingValue}
+                value={analytics.isLoading ? loadingValue : periodData.totalSpending}
                 format={money}
-                subtitle={
-                  summary
-                    ? summary.eligible_invoices + ' invoices included'
-                    : 'From your invoice ledger'
-                }
+                subtitle={`${periodData.eligibleCount} invoices in ${periodData.periodLabel.toLowerCase()}`}
                 icon={Wallet}
               />
             </ScrollReveal>
             <ScrollReveal delay={45}>
               <MetricCard
                 title="Total invoices"
-                value={summary?.total_invoices ?? loadingValue}
-                subtitle="All invoices in your workspace"
+                value={analytics.isLoading ? loadingValue : periodData.totalInvoices}
+                subtitle={`Recorded in ${periodData.periodLabel.toLowerCase()}`}
                 icon={Receipt}
               />
             </ScrollReveal>
             <ScrollReveal delay={90}>
               <MetricCard
                 title="Needs attention"
-                value={summary?.needs_review ?? loadingValue}
+                value={analytics.isLoading ? loadingValue : periodData.needsReview}
                 subtitle="Ready for your review"
                 icon={ScanLine}
               />
@@ -360,8 +481,8 @@ export function Dashboard() {
             <ScrollReveal delay={135}>
               <MetricCard
                 title="Suspected duplicates"
-                value={summary?.suspected_duplicates ?? loadingValue}
-                subtitle="Check before including in spend"
+                value={analytics.isLoading ? loadingValue : periodData.suspectedDuplicates}
+                subtitle="Flagged to prevent double payment"
                 icon={ShieldAlert}
               />
             </ScrollReveal>
@@ -547,101 +668,234 @@ export function Dashboard() {
         </ScrollReveal>
       </div>
 
-      {/* 6. Recent Invoices Activity Table */}
+      {/* 6. Recent Invoices & Processing Activity Timeline */}
       <ScrollReveal>
         <CosmicGlassPanel className="activity-panel">
-          <div className="section-heading p-5 sm:p-7">
+          <div className="section-heading p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="section-kicker">YOUR WORKSPACE, IN MOTION</span>
-              <h2>Recent invoices</h2>
+              <h2>{activityTab === 'invoices' ? 'Recent invoices' : 'Live processing activity'}</h2>
             </div>
-            <Link to="/invoices" className="text-link">
-              View all <ArrowUpRight size={15} />
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center p-1 rounded-xl bg-white/[0.03] border border-white/6">
+                <button
+                  type="button"
+                  onClick={() => setActivityTab('invoices')}
+                  className={`px-3 py-1 text-xs font-sans font-medium rounded-lg transition-all cursor-pointer ${
+                    activityTab === 'invoices'
+                      ? 'bg-[#BBA8F1]/20 text-[#F1EDF8] shadow-[0_2px_8px_rgba(139,92,246,0.25)] border border-[#BBA8F1]/40'
+                      : 'text-[#9892AB] hover:text-[#E2DCF0] hover:bg-white/[0.04]'
+                  }`}
+                >
+                  Invoices {invoices.data?.total ? `(${invoices.data.total})` : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityTab('logs')}
+                  className={`px-3 py-1 text-xs font-sans font-medium rounded-lg transition-all cursor-pointer ${
+                    activityTab === 'logs'
+                      ? 'bg-[#BBA8F1]/20 text-[#F1EDF8] shadow-[0_2px_8px_rgba(139,92,246,0.25)] border border-[#BBA8F1]/40'
+                      : 'text-[#9892AB] hover:text-[#E2DCF0] hover:bg-white/[0.04]'
+                  }`}
+                >
+                  Processing Logs {activityQuery.data?.length ? `(${activityQuery.data.length})` : ''}
+                </button>
+              </div>
+              {activityTab === 'invoices' ? (
+                <Link to="/invoices" className="text-link">
+                  View all <ArrowUpRight size={15} />
+                </Link>
+              ) : (
+                <Link to="/upload" className="text-link">
+                  Upload <ArrowUpRight size={15} />
+                </Link>
+              )}
+            </div>
           </div>
-          {invoices.isError && (
-            <div role="status" className="data-notice mx-5 mb-4">
-              Recent invoices could not be refreshed.
-              <button onClick={() => invoices.refetch()}>Try again</button>
-            </div>
-          )}
-          {invoices.data?.items.length ? (
-            <div className="overflow-x-auto">
-              <table className="activity-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Invoice / vendor</th>
-                    <th scope="col">Received</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">
-                      <span className="sr-only">Open</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.data.items.map((invoice) => (
-                    <tr key={invoice.id}>
-                      <td>
-                        <Link
-                          to={'/invoices?invoice=' + invoice.id}
-                          className="invoice-name"
-                        >
-                          <span className="invoice-icon">
-                            <Receipt size={17} />
-                          </span>
-                          <span>
-                            <strong>{invoice.vendor_name || 'Unknown vendor'}</strong>
-                            <small>{invoice.invoice_number || 'Invoice #' + invoice.id}</small>
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="whitespace-nowrap">
-                        {new Date(invoice.created_at).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </td>
-                      <td className="tabular-nums whitespace-nowrap">
-                        {invoice.converted_amount != null && invoice.converted_currency
-                          ? money(invoice.converted_amount, invoice.converted_currency)
-                          : invoice.total_amount != null
-                          ? money(invoice.total_amount, invoice.currency)
-                          : '—'}
-                      </td>
-                      <td>
-                        <StatusBadge
-                          status={invoice.is_duplicate ? 'suspected_duplicate' : invoice.status}
-                        />
-                      </td>
-                      <td>
-                        <Link
-                          className="icon-link"
-                          to={'/invoices?invoice=' + invoice.id}
-                          aria-label={'Open invoice ' + (invoice.invoice_number || invoice.id)}
-                        >
-                          <ArrowUpRight size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+          {activityTab === 'logs' ? (
+            <div>
+              {activityQuery.isError && (
+                <div role="status" className="data-notice mx-5 mb-4">
+                  Processing activity could not be refreshed.
+                  <button onClick={() => activityQuery.refetch()}>Try again</button>
+                </div>
+              )}
+              {activityQuery.data?.length ? (
+                <div className="overflow-x-auto">
+                  <table className="activity-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">File / Task</th>
+                        <th scope="col">Processed</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Size</th>
+                        <th scope="col">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activityQuery.data.map((log) => {
+                        const isSuccess = log.status.toLowerCase() === 'success' || log.status.toLowerCase() === 'completed';
+                        const dur = log.duration_sec ?? 0;
+                        const durText = log.duration_sec != null
+                          ? dur < 1
+                            ? `${Math.round(dur * 1000)}ms`
+                            : `${dur.toFixed(2)}s`
+                          : '—';
+                        const sizeKb = log.file_size ? `${(log.file_size / 1024).toFixed(1)} KB` : '—';
+                        return (
+                          <tr key={log.id}>
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <span className={`invoice-icon ${isSuccess ? 'text-[#86efac]' : 'text-[#fca5a5]'}`}>
+                                  {isSuccess ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                </span>
+                                <div>
+                                  <strong className="text-sm font-medium text-[#F1EDF8] block truncate max-w-xs sm:max-w-md">
+                                    {log.file_name}
+                                  </strong>
+                                  {log.error_message && (
+                                    <small className="text-[11px] text-red-400/90 block truncate max-w-xs sm:max-w-md">
+                                      {log.error_message}
+                                    </small>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="whitespace-nowrap text-xs text-[#b8accf]">
+                              {new Date(log.processed_at).toLocaleString('en-IN', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+                            <td className="tabular-nums whitespace-nowrap text-xs font-mono text-[#d4c8ee]">
+                              {durText}
+                            </td>
+                            <td className="tabular-nums whitespace-nowrap text-xs text-[#a99ebc]">
+                              {sizeKb}
+                            </td>
+                            <td>
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wide border ${
+                                  isSuccess
+                                    ? 'bg-[#22c55e]/10 text-[#86efac] border-[#22c55e]/25'
+                                    : 'bg-[#ef4444]/10 text-[#fca5a5] border-[#ef4444]/25'
+                                }`}
+                              >
+                                {log.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="pb-7">
+                  <EmptyState
+                    title={
+                      activityQuery.isLoading
+                        ? 'Loading processing activity…'
+                        : activityQuery.isError
+                        ? 'Processing activity unavailable'
+                        : 'No processing logs recorded yet'
+                    }
+                    text="Upload an invoice to see extraction and verification activity."
+                    loading={activityQuery.isLoading}
+                  />
+                </div>
+              )}
             </div>
           ) : (
-            <div className="pb-7">
-              <EmptyState
-                title={
-                  invoices.isLoading
-                    ? 'Loading recent invoices…'
-                    : invoices.isError
-                    ? 'Activity is unavailable'
-                    : 'Make room for your first invoice'
-                }
-                text="Upload a PDF and keep its processing status in view."
-                loading={invoices.isLoading || invoices.isError}
-              />
+            <div>
+              {invoices.isError && (
+                <div role="status" className="data-notice mx-5 mb-4">
+                  Recent invoices could not be refreshed.
+                  <button onClick={() => invoices.refetch()}>Try again</button>
+                </div>
+              )}
+              {invoices.data?.items.length ? (
+                <div className="overflow-x-auto">
+                  <table className="activity-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Invoice / vendor</th>
+                        <th scope="col">Received</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">
+                          <span className="sr-only">Open</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.data.items.map((invoice) => (
+                        <tr key={invoice.id}>
+                          <td>
+                            <Link
+                              to={'/invoices?invoice=' + invoice.id}
+                              className="invoice-name"
+                            >
+                              <span className="invoice-icon">
+                                <Receipt size={17} />
+                              </span>
+                              <span>
+                                <strong>{invoice.vendor_name || 'Unknown vendor'}</strong>
+                                <small>{invoice.invoice_number || 'Invoice #' + invoice.id}</small>
+                              </span>
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap">
+                            {new Date(invoice.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </td>
+                          <td className="tabular-nums whitespace-nowrap">
+                            {invoice.converted_amount != null && invoice.converted_currency
+                              ? money(invoice.converted_amount, invoice.converted_currency)
+                              : invoice.total_amount != null
+                              ? money(invoice.total_amount, invoice.currency)
+                              : '—'}
+                          </td>
+                          <td>
+                            <StatusBadge
+                              status={invoice.is_duplicate ? 'suspected_duplicate' : invoice.status}
+                            />
+                          </td>
+                          <td>
+                            <Link
+                              className="icon-link"
+                              to={'/invoices?invoice=' + invoice.id}
+                              aria-label={'Open invoice ' + (invoice.invoice_number || invoice.id)}
+                            >
+                              <ArrowUpRight size={15} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="pb-7">
+                  <EmptyState
+                    title={
+                      invoices.isLoading
+                        ? 'Loading recent invoices…'
+                        : invoices.isError
+                        ? 'Activity is unavailable'
+                        : 'Make room for your first invoice'
+                    }
+                    text="Upload a PDF and keep its processing status in view."
+                    loading={invoices.isLoading || invoices.isError}
+                  />
+                </div>
+              )}
             </div>
           )}
           {!!summary?.suspected_duplicates && (
@@ -692,7 +946,11 @@ function EmptyState({
 }) {
   return (
     <div className="dashboard-empty">
-      <FilePlus2 size={25} strokeWidth={1} />
+      {loading ? (
+        <CosmicLoader size="md" />
+      ) : (
+        <FilePlus2 size={25} strokeWidth={1} />
+      )}
       <h3>{title}</h3>
       <p>{text}</p>
       {!loading && (

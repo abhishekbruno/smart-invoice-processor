@@ -123,37 +123,68 @@
   animation: fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Cosmic energy sweep navigation transition */
-@keyframes cosmic-sweep {
+/* Cosmic entry screen orbital rings */
+@keyframes cosmic-orbit-1 {
   0% {
-    transform: translateX(-100%) skewX(-14deg);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.9;
-  }
-  75% {
-    opacity: 0.7;
+    transform: rotateX(68deg) rotateY(15deg) rotateZ(0deg);
   }
   100% {
-    transform: translateX(110vw) skewX(-14deg);
+    transform: rotateX(68deg) rotateY(15deg) rotateZ(360deg);
+  }
+}
+
+@keyframes cosmic-orbit-2 {
+  0% {
+    transform: rotateX(72deg) rotateY(-25deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(72deg) rotateY(-25deg) rotateZ(-360deg);
+  }
+}
+
+/* Cosmic warp navigation transition */
+@keyframes cosmic-warp-ripple {
+  0% {
+    transform: scale(0.15);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(2.4);
     opacity: 0;
   }
 }
 
-@keyframes cosmic-sweep-edge {
+@keyframes cosmic-warp-glow {
   0% {
-    transform: translateX(-100%) skewX(-14deg);
-    opacity: 0;
+    transform: scale(0.25);
+    opacity: 0.75;
   }
-  15% {
-    opacity: 0.95;
-  }
-  85% {
-    opacity: 0.8;
+  60% {
+    opacity: 0.3;
   }
   100% {
-    transform: translateX(110vw) skewX(-14deg);
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes cosmic-converge {
+  0% {
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(1.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  70% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(0, 0) scale(0.2);
     opacity: 0;
   }
 }
@@ -236,6 +267,66 @@
   border-radius: 50%;
   filter: blur(25px);
   pointer-events: none;
+}
+
+/* ==========================================================================
+   Interactive Glass Cards: Cursor-following illumination & elevation
+   ========================================================================== */
+@media (hover: hover) and (pointer: fine) {
+  .cosmic-glass-interactive {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.22s ease,
+                box-shadow 0.22s ease;
+    will-change: transform;
+  }
+
+  .cosmic-glass-interactive:hover {
+    transform: translateY(-2.5px);
+    border-color: rgba(192, 168, 255, 0.32);
+    box-shadow:
+      0 14px 36px rgba(0, 0, 0, 0.38),
+      0 0 20px rgba(139, 92, 246, 0.12),
+      inset 0 1px 0 rgba(224, 210, 255, 0.22);
+  }
+
+  /* Internal diffused lavender light following cursor */
+  .cosmic-glass-interactive .cosmic-glass-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: var(--card-opacity, 0);
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    background: radial-gradient(
+      320px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+      rgba(192, 132, 252, 0.12),
+      rgba(124, 58, 237, 0.04) 45%,
+      transparent 70%
+    );
+    z-index: 0;
+  }
+
+  /* Reflective border highlight brightening near cursor */
+  .cosmic-glass-interactive .cosmic-glass-border-spotlight {
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    opacity: var(--card-opacity, 0);
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    background: radial-gradient(
+      260px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+      rgba(224, 195, 255, 0.5),
+      rgba(147, 51, 234, 0.2) 50%,
+      transparent 75%
+    );
+    z-index: 1;
+  }
 }
 
 /* Secondary subtle glass panel */
@@ -356,49 +447,7 @@
 .cosmic-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 35%, transparent 25%, #020203 100%); }
 @keyframes cosmic-drift { from { transform: translate3d(-3px, 0, 0); } to { transform: translate3d(9px, -16px, 0); } }
 .dashboard-hero { position: relative; isolation: isolate; padding: 26px 24px 0; text-align: center; overflow: hidden; border-bottom: 1px solid #b89de420; background: radial-gradient(ellipse 60% 60% at 50% 26%, #50308612, transparent 90%); transform: translateZ(0); }
-.hero-rift-anchor {
-  position: absolute;
-  top: -6%;
-  right: -2%;
-  width: min(640px, 48vw);
-  height: min(620px, 50vw);
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.9;
-  mask-image: radial-gradient(circle at 62% 48%, black 32%, rgba(0, 0, 0, 0.75) 58%, transparent 78%);
-  -webkit-mask-image: radial-gradient(circle at 62% 48%, black 32%, rgba(0, 0, 0, 0.75) 58%, transparent 78%);
-  filter: drop-shadow(0 0 35px rgba(139, 92, 246, 0.16));
-}
-.cosmic-rift-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  user-select: none;
-}
-@media (max-width: 1280px) {
-  .hero-rift-anchor {
-    top: 0%;
-    right: -6%;
-    width: 480px;
-    height: 480px;
-    opacity: 0.75;
-  }
-}
-@media (max-width: 1024px) {
-  .hero-rift-anchor {
-    top: 4%;
-    right: -10%;
-    width: 380px;
-    height: 380px;
-    opacity: 0.55;
-  }
-}
-@media (max-width: 768px) {
-  .hero-rift-anchor {
-    display: none;
-  }
-}
+
 .dashboard section {
   contain: content;
 }
@@ -588,11 +637,73 @@
 .cosmic-glass-control, .cosmic-glass-pill, header, aside { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 .dashboard .cosmic-glass { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 .cosmic-sidebar { background: radial-gradient(ellipse at 10% 12%, #69419b28, transparent 55%), linear-gradient(170deg,#1a1029f5,#0b0815fa) !important; box-shadow: inset -1px 0 #d2b3fa0d; }
-.cosmic-sidebar nav { padding-top: 30px; }
-.cosmic-sidebar nav a { position: relative; min-height: 44px; margin-bottom: 5px; transition: color .2s, background-color .2s, border-color .2s; }
-.cosmic-sidebar nav a[aria-current="page"] { background: linear-gradient(90deg,#8b5bcc29,#7b4db512); border-color: #c5a2f336; color: #eee3ff; box-shadow: inset 2px 0 #c2a0ed; }
-.cosmic-sidebar nav a:hover { background-color: #ac80df0d; }
+
 [data-visual-mode="full"] .dashboard .cosmic-glass { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 [data-visual-mode="reduced"] .star-layer-1, [data-visual-mode="reduced"] .star-layer-2 { display:none; }
 [data-visual-mode="reduced"] .cosmic-glass, [data-visual-mode="reduced"] .cosmic-glass-subtle { background: #181021; }
 @media(max-width:640px) { .cosmic-glass, .cosmic-glass-subtle, .dashboard .cosmic-glass { backdrop-filter:none; -webkit-backdrop-filter:none; } }
+
+/* Cosmic entry screen orbital rings */
+@keyframes cosmic-orbit-1 {
+  0% { transform: rotateX(68deg) rotateY(15deg) rotateZ(0deg); }
+  100% { transform: rotateX(68deg) rotateY(15deg) rotateZ(360deg); }
+}
+
+@keyframes cosmic-orbit-2 {
+  0% { transform: rotateX(72deg) rotateY(-25deg) rotateZ(0deg); }
+  100% { transform: rotateX(72deg) rotateY(-25deg) rotateZ(-360deg); }
+}
+
+/* Cosmic warp navigation transition */
+@keyframes cosmic-warp-ripple {
+  0% { transform: scale(0.15); opacity: 0.85; }
+  50% { opacity: 0.45; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes cosmic-warp-glow {
+  0% { transform: scale(0.25); opacity: 0.75; }
+  60% { opacity: 0.3; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes cosmic-converge {
+  0% { transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(1.4); opacity: 0; }
+  30% { opacity: 0.85; }
+  70% { transform: translate(0, 0) scale(0.6); opacity: 0.9; }
+  100% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+}
+
+/* Cosmic AI & Document Processing Particles */
+@keyframes cosmic-particle-bounce {
+  0%, 100% {
+    transform: translateY(0px) scale(0.85);
+    opacity: 0.35;
+    box-shadow: 0 0 4px rgba(187, 168, 241, 0.3);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.2);
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(187, 168, 241, 0.9), 0 0 18px rgba(139, 92, 246, 0.7);
+  }
+}
+
+.cosmic-particle-dot {
+  animation: cosmic-particle-bounce 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Cosmic Ambient Glow Wash */
+.cosmic-ambient-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 30%, rgba(139, 92, 246, 0.07), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 85% 75%, rgba(109, 40, 217, 0.05), transparent 60%);
+  transition: opacity 0.5s ease;
+}
+
+[data-visual-mode="reduced"] .cosmic-ambient-glow {
+  display: none;
+}

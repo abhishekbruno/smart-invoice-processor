@@ -25,8 +25,12 @@ import {
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { CosmicGlassPanel } from '../components/CosmicGlassPanel';
+import { CosmicLoader, CosmicTableSkeleton } from '../components/CosmicLoader';
+import { useNotifications } from '../components/NotificationProvider';
 
 export const InvoiceManager: React.FC = () => {
+  const notify = useNotifications();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,6 +73,10 @@ export const InvoiceManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-detail'] });
       queryClient.invalidateQueries({ queryKey: ['analytics-full'] });
+      notify.success('Invoice verified and approved for ledger.', 'Invoice Verified');
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.detail || err?.message || 'Verification failed', 'Action Failed');
     },
   });
 
@@ -78,6 +86,10 @@ export const InvoiceManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-detail'] });
       queryClient.invalidateQueries({ queryKey: ['analytics-full'] });
+      notify.success('Invoice marked as genuine and cleared.', 'Status Updated');
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.detail || err?.message || 'Action failed', 'Action Failed');
     },
   });
 
@@ -87,6 +99,10 @@ export const InvoiceManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-detail'] });
       queryClient.invalidateQueries({ queryKey: ['analytics-full'] });
+      notify.warning('Invoice confirmed as duplicate and payment blocked.', 'Duplicate Flagged');
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.detail || err?.message || 'Action failed', 'Action Failed');
     },
   });
 
@@ -94,8 +110,13 @@ export const InvoiceManager: React.FC = () => {
     mutationFn: deleteInvoice,
     onSuccess: () => {
       setSelectedInvoiceId(null);
+      setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['analytics-full'] });
+      notify.success('Invoice record permanently deleted.', 'Invoice Deleted');
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.detail || err?.message || 'Delete failed', 'Action Failed');
     },
   });
 
@@ -195,11 +216,7 @@ export const InvoiceManager: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-white/4 text-[#B8B2C8]">
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-[#9892AB]">
-                    Loading invoices...
-                  </td>
-                </tr>
+                <CosmicTableSkeleton rows={5} cols={7} />
               ) : items.length > 0 ? (
                 items.map((inv) => (
                   <tr
@@ -289,7 +306,9 @@ export const InvoiceManager: React.FC = () => {
         maxWidth="3xl"
       >
         {detailLoading ? (
-          <div className="py-12 text-center text-[#9892AB] text-xs">Loading invoice details...</div>
+          <div className="py-12 flex justify-center">
+            <CosmicLoader size="md" label="Fetching invoice details…" />
+          </div>
         ) : detailData ? (
           <div className="space-y-6">
             {/* Duplicate Notice */}
@@ -442,18 +461,36 @@ export const InvoiceManager: React.FC = () => {
                   <ExternalLink className="w-3 h-3 text-[#9892AB]" />
                 </a>
 
-                <button
-                  onClick={() => {
-                    if (confirm('Delete invoice permanently?')) {
-                      deleteMutation.mutate(detailData.id);
-                    }
-                  }}
-                  disabled={deleteMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#923F53]/15 hover:bg-[#923F53]/25 text-rose-300 text-xs font-medium border border-[#923F53]/30 transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
-                </button>
+                {confirmDeleteId === detailData.id ? (
+                  <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-rose-950/40 border border-rose-500/30 text-xs">
+                    <span className="text-rose-200 px-1 text-[11px]">Confirm delete?</span>
+                    <button
+                      type="button"
+                      onClick={() => deleteMutation.mutate(detailData.id)}
+                      disabled={deleteMutation.isPending}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-[11px] transition cursor-pointer"
+                    >
+                      {deleteMutation.isPending ? 'Deleting...' : 'Yes, delete'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[#C4B5FD] text-[11px] transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteId(detailData.id)}
+                    disabled={deleteMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#923F53]/15 hover:bg-[#923F53]/25 text-rose-300 text-xs font-medium border border-[#923F53]/30 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

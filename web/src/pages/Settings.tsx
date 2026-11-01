@@ -77,13 +77,13 @@ export const Settings: React.FC = () => {
         </p>
       </div>
 
-      <CosmicGlassPanel className="p-6 flex items-center justify-between gap-5">
+      <CosmicGlassPanel interactive className="p-6 flex items-center justify-between gap-5">
         <div><h2 className="text-sm font-medium">Visual Effects</h2><p id="effects-description" className="text-xs text-[#B8B2C8] mt-2">Balanced uses fewer particles and lighter glass. Full adds richer motion; Reduced removes continuous animation. Your system motion preference is always respected.</p>{reduced && !reducedEffects && <p className="text-xs text-[#BBA8F1] mt-2">Reduced motion is enabled by your device.</p>}</div>
         <select aria-label="Visual Effects" value={mode} onChange={event => setMode(event.target.value as 'full' | 'balanced' | 'reduced')} className="cosmic-glass-control p-2 text-xs"><option value="full">Full</option><option value="balanced">Balanced</option><option value="reduced">Reduced</option></select>
       </CosmicGlassPanel>
 
       {/* Section 1: Valuation Currency in Cosmic Violet Glass */}
-      <CosmicGlassPanel className="p-6 sm:p-7 space-y-5">
+      <CosmicGlassPanel interactive className="p-6 sm:p-7 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl cosmic-glass-control text-[#BBA8F1]">
@@ -160,7 +160,7 @@ export const Settings: React.FC = () => {
       </CosmicGlassPanel>
 
       {/* Section 2: ChromaDB Vector Reindexing */}
-      <CosmicGlassPanel className="p-6 sm:p-7 space-y-4">
+      <CosmicGlassPanel interactive className="p-6 sm:p-7 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-display font-semibold text-[#F1EDF8]">Chroma Vector Database</h3>

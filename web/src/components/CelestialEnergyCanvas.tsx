@@ -32,8 +32,6 @@ export function CelestialEnergyCanvas({ className = '', speedMultiplier = 1, pul
 
     let width = 0, height = 0, dpr = 1, time = 0, visible = true;
     let pointerX = 0, pointerY = 0, tiltX = 0, tiltY = 0;
-    let isScrolling = false;
-    let scrollTimer: number | null = null;
 
     const compact = mode !== 'full' || window.matchMedia('(max-width: 640px)').matches;
     const filamentCount = compact ? 10 : 16;
@@ -41,8 +39,7 @@ export function CelestialEnergyCanvas({ className = '', speedMultiplier = 1, pul
     const tau = Math.PI * 2;
 
     const draw = (dt: number) => {
-      // Pause drawing during active scrolling to free 100% GPU/CPU for smooth 60 FPS scroll
-      if (!width || !height || isScrolling) return;
+      if (!width || !height) return;
       time += dt * speedMultiplier;
 
       const smoothing = 1 - Math.exp(-dt * 3);
@@ -367,21 +364,10 @@ export function CelestialEnergyCanvas({ className = '', speedMultiplier = 1, pul
     };
 
     const pointer = (e: PointerEvent) => {
-      if (reduced || !visible || isScrolling || e.pointerType === 'touch') return;
+      if (reduced || !visible || e.pointerType === 'touch') return;
       const rect = canvas.getBoundingClientRect();
       pointerX = Math.max(-0.12, Math.min(0.12, ((e.clientX - rect.left - width / 2) / width) * 0.2));
       pointerY = Math.max(-0.09, Math.min(0.09, ((e.clientY - rect.top - height / 2) / height) * 0.16));
-    };
-
-    // Pause heavy canvas loop while user is actively scrolling
-    const onScroll = () => {
-      isScrolling = true;
-      if (scrollTimer !== null) window.clearTimeout(scrollTimer);
-      scrollTimer = window.setTimeout(() => {
-        isScrolling = false;
-        scrollTimer = null;
-        if (visible && !document.hidden && !reduced) draw(0);
-      }, 100);
     };
 
     const observer = new ResizeObserver(resize);
@@ -400,7 +386,6 @@ export function CelestialEnergyCanvas({ className = '', speedMultiplier = 1, pul
     updateRunning();
 
     window.addEventListener('pointermove', pointer, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('visibilitychange', updateRunning);
 
     return () => {
@@ -408,9 +393,7 @@ export function CelestialEnergyCanvas({ className = '', speedMultiplier = 1, pul
       observer.disconnect();
       intersection.disconnect();
       window.removeEventListener('pointermove', pointer);
-      window.removeEventListener('scroll', onScroll);
       document.removeEventListener('visibilitychange', updateRunning);
-      if (scrollTimer !== null) window.clearTimeout(scrollTimer);
       canvas.width = 0;
       canvas.height = 0;
     };

@@ -9,12 +9,6 @@ const Core = lazy(() =>
   }))
 );
 
-const Rift = lazy(() =>
-  import('./CosmicRiftCanvas').then((module) => ({
-    default: module.CosmicRiftCanvas,
-  }))
-);
-
 export function DashboardHero() {
   const [pulse, setPulse] = useState(0);
   const lastPulse = useRef(-Infinity);
@@ -27,13 +21,6 @@ export function DashboardHero() {
 
   return (
     <section className="dashboard-hero relative overflow-hidden" aria-labelledby="dashboard-title">
-      {/* Distant Cosmic Slash / Dimensional Rift in Far-Right Background */}
-      <div className="hero-rift-anchor hidden md:block" aria-hidden="true">
-        <Suspense fallback={null}>
-          <Rift speedMultiplier={0.8} />
-        </Suspense>
-      </div>
-
       {/* Eyebrow Pill */}
       <div className="relative z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full cosmic-glass-pill mb-3">
         <span className="w-1.5 h-1.5 rounded-full bg-[#cab0ff] shadow-[0_0_8px_#ae78fd]" />
